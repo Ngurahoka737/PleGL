@@ -9,6 +9,7 @@ EMSCRIPTEN_BINDINGS(sculpt_engine) {
     .constructor<>()
     .function("createQuadSphere", &SculptEngine::createQuadSphere)
     .function("subdivideCurrent", &SculptEngine::subdivideCurrent)
+    .function("restoreCoarseLevel", &SculptEngine::restoreCoarseLevel)
     .function("applyDraw", &SculptEngine::applyDraw)
     .function("applySmooth", &SculptEngine::applySmooth)
     .function("applyClay", &SculptEngine::applyClay)

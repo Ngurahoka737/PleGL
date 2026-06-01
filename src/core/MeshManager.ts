@@ -43,9 +43,10 @@ export class MeshManager {
 
     if (clamped < this.subdivisionLevel) {
       const previous = this.levelGeometries.get(clamped);
-      if (!previous || this.sculptEngine.isWasmActive()) return this.subdivisionLevel;
+      if (!previous) return this.subdivisionLevel;
       this.mesh.geometry = previous;
       this.subdivisionLevel = clamped;
+      this.sculptEngine.restoreCoarseLevel();
       this.discardLevelsAbove(clamped);
       this.rebuildWireframeOverlay();
       return this.subdivisionLevel;
@@ -124,31 +125,55 @@ export class MeshManager {
   private subdivideGeometry(source: THREE.BufferGeometry): THREE.BufferGeometry {
     const positions = source.getAttribute('position');
     const faces = source.userData.quadFaces as number[][];
-    const values = Array.from(positions.array as ArrayLike<number>);
-    const edgePoints = new Map<string, number>();
     const key = (a: number, b: number): string => (a < b ? `${a}:${b}` : `${b}:${a}`);
-    const midpoint = (a: number, b: number): number => {
-      const edge = key(a, b);
-      const existing = edgePoints.get(edge);
-      if (existing !== undefined) return existing;
-      const index = values.length / 3;
-      values.push(
-        (positions.getX(a) + positions.getX(b)) * 0.5,
-        (positions.getY(a) + positions.getY(b)) * 0.5,
-        (positions.getZ(a) + positions.getZ(b)) * 0.5,
-      );
-      edgePoints.set(edge, index);
-      return index;
-    };
-    for (const face of faces) face.forEach((a, index) => midpoint(a, face[(index + 1) % 4]));
-
-    const centers = faces.map(([a, b, c, d]) => {
-      const index = values.length / 3;
-      values.push(
+    const sourceVertices = Array.from({ length: positions.count }, (_, index) =>
+      new THREE.Vector3(positions.getX(index), positions.getY(index), positions.getZ(index)));
+    const facePoints = faces.map(([a, b, c, d]) =>
+      new THREE.Vector3(
         (positions.getX(a) + positions.getX(b) + positions.getX(c) + positions.getX(d)) * 0.25,
         (positions.getY(a) + positions.getY(b) + positions.getY(c) + positions.getY(d)) * 0.25,
         (positions.getZ(a) + positions.getZ(b) + positions.getZ(c) + positions.getZ(d)) * 0.25,
-      );
+      ));
+    const edges = new Map<string, { a: number; b: number; faces: number[] }>();
+    const vertexFaces = sourceVertices.map(() => [] as number[]);
+    const vertexEdges = sourceVertices.map(() => new Set<string>());
+    faces.forEach((face, faceIndex) => face.forEach((a, edgeIndex) => {
+      const b = face[(edgeIndex + 1) % 4], edge = key(a, b);
+      const record = edges.get(edge) ?? { a, b, faces: [] };
+      record.faces.push(faceIndex);
+      edges.set(edge, record);
+      vertexFaces[a].push(faceIndex);
+      vertexEdges[a].add(edge);
+      vertexEdges[b].add(edge);
+    }));
+
+    const values: number[] = [];
+    sourceVertices.forEach((vertex, vertexIndex) => {
+      const faceAverage = new THREE.Vector3();
+      for (const faceIndex of vertexFaces[vertexIndex]) faceAverage.add(facePoints[faceIndex]);
+      faceAverage.multiplyScalar(1 / vertexFaces[vertexIndex].length);
+      const edgeAverage = new THREE.Vector3();
+      for (const edge of vertexEdges[vertexIndex]) {
+        const record = edges.get(edge)!;
+        edgeAverage.add(sourceVertices[record.a]).add(sourceVertices[record.b]);
+      }
+      edgeAverage.multiplyScalar(0.5 / vertexEdges[vertexIndex].size);
+      const count = vertexFaces[vertexIndex].length;
+      faceAverage.addScaledVector(edgeAverage, 2).addScaledVector(vertex, count - 3).multiplyScalar(1 / count);
+      values.push(faceAverage.x, faceAverage.y, faceAverage.z);
+    });
+
+    const edgePoints = new Map<string, number>();
+    for (const [edge, record] of edges) {
+      const point = sourceVertices[record.a].clone().add(sourceVertices[record.b]);
+      for (const faceIndex of record.faces) point.add(facePoints[faceIndex]);
+      point.multiplyScalar(1 / (2 + record.faces.length));
+      edgePoints.set(edge, values.length / 3);
+      values.push(point.x, point.y, point.z);
+    }
+    const centers = facePoints.map((point) => {
+      const index = values.length / 3;
+      values.push(point.x, point.y, point.z);
       return index;
     });
 

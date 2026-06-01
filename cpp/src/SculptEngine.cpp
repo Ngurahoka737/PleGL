@@ -1,8 +1,14 @@
 #include "SculptEngine.hpp"
 
 SculptEngine::SculptEngine() { createQuadSphere(1.0f, 5); }
-void SculptEngine::createQuadSphere(float radius, int level) { mesh_ = PrimitiveGenerator::quadSphere(radius, level); }
-void SculptEngine::subdivideCurrent() { PrimitiveGenerator::subdivideCurrent(mesh_); }
+void SculptEngine::createQuadSphere(float radius, int level) { mesh_ = PrimitiveGenerator::quadSphere(radius, level); coarseLevels_.clear(); }
+void SculptEngine::subdivideCurrent() { coarseLevels_.push_back(mesh_); PrimitiveGenerator::subdivideCurrent(mesh_); }
+bool SculptEngine::restoreCoarseLevel() {
+  if (coarseLevels_.empty()) return false;
+  mesh_ = std::move(coarseLevels_.back());
+  coarseLevels_.pop_back();
+  return true;
+}
 bool SculptEngine::applyDraw(float x,float y,float z,float radius,float strength,bool invert) {
   return Brush::draw(mesh_, {x,y,z}, {radius,strength,invert});
 }

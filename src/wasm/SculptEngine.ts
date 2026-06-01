@@ -14,6 +14,7 @@ interface EmbindVector<T> {
 interface WasmEngine {
   createQuadSphere(radius: number, subdivisionLevel: number): void;
   subdivideCurrent(): void;
+  restoreCoarseLevel(): boolean;
   applyDraw(x: number, y: number, z: number, radius: number, strength: number, invert: boolean): boolean;
   applySmooth(x: number, y: number, z: number, radius: number, strength: number): boolean;
   applyClay(x: number, y: number, z: number, nx: number, ny: number, nz: number, radius: number, strength: number, invert: boolean): boolean;
@@ -54,6 +55,11 @@ export class SculptEngine {
   subdivideCurrent(): void {
     if (!this.wasm) return;
     this.wasm.subdivideCurrent();
+    this.syncPositionsAndNormals();
+  }
+
+  restoreCoarseLevel(): void {
+    if (!this.wasm || !this.wasm.restoreCoarseLevel()) return;
     this.syncPositionsAndNormals();
   }
 

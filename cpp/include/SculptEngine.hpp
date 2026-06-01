@@ -8,6 +8,7 @@ class SculptEngine {
   SculptEngine();
   void createQuadSphere(float radius, int subdivisionLevel);
   void subdivideCurrent();
+  bool restoreCoarseLevel();
   bool applyDraw(float x, float y, float z, float radius, float strength, bool invert);
   bool applySmooth(float x, float y, float z, float radius, float strength);
   bool applyClay(float x, float y, float z, float nx, float ny, float nz, float radius, float strength, bool invert);
@@ -19,4 +20,5 @@ class SculptEngine {
  private:
   Mesh mesh_;
   HistoryManager history_;
+  std::vector<Mesh> coarseLevels_;
 };
