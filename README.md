@@ -1,4 +1,4 @@
-# Quad Sphere Sculpt
+# PleGl
 
 Browser sculpting foundation with a C++ core compiled to WebAssembly. TypeScript owns browser input, UI, and Three.js visualization. C++ owns the mesh buffers, seamless quad sphere generation, subdivision, normals, Draw Brush, Smooth Brush, Clay Brush, and undo/redo snapshots.
 
