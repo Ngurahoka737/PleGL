@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createQuadSphereGeometry, type QuadSphereOptions } from '../primitives/QuadSpherePrimitive';
+import { recalculateQuadNormals } from '../utils/GeometryUtils';
 import { SculptEngine } from '../wasm/SculptEngine';
 
 export class MeshManager {
@@ -66,7 +67,7 @@ export class MeshManager {
   recalculateSurface(): void {
     const position = this.mesh.geometry.getAttribute('position');
     position.needsUpdate = true;
-    this.mesh.geometry.computeVertexNormals();
+    recalculateQuadNormals(this.mesh.geometry);
     this.mesh.geometry.getAttribute('normal').needsUpdate = true;
     this.mesh.geometry.computeBoundingSphere();
     this.mesh.geometry.computeBoundingBox();
@@ -192,12 +193,12 @@ export class MeshManager {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(values, 3));
     geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-    geometry.computeBoundingSphere();
     geometry.userData.primitive = source.userData.primitive;
     geometry.userData.options = { ...(source.userData.options as object), subdivisions: this.subdivisionLevel + 1 };
     geometry.userData.quadFaces = nextFaces;
     geometry.userData.wireframeLevels = this.subdivideWireframeLevels(nextFaces, source.userData.wireframeLevels as Uint32Array[], edgePoints);
+    recalculateQuadNormals(geometry);
+    geometry.computeBoundingSphere();
     return geometry;
   }
 

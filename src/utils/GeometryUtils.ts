@@ -76,3 +76,41 @@ export function buildVertexNeighbors(geometry: THREE.BufferGeometry): number[][]
   }
   return neighbors.map((items) => [...items]);
 }
+
+export function recalculateQuadNormals(geometry: THREE.BufferGeometry): void {
+  const positions = geometry.getAttribute('position');
+  const quadFaces = geometry.userData.quadFaces as number[][] | undefined;
+  if (!quadFaces) {
+    geometry.computeVertexNormals();
+    return;
+  }
+
+  const normals = new Float32Array(positions.count * 3);
+  for (const face of quadFaces) {
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    face.forEach((index, edge) => {
+      const next = face[(edge + 1) % face.length];
+      const ax = positions.getX(index), ay = positions.getY(index), az = positions.getZ(index);
+      const bx = positions.getX(next), by = positions.getY(next), bz = positions.getZ(next);
+      x += (ay - by) * (az + bz);
+      y += (az - bz) * (ax + bx);
+      z += (ax - bx) * (ay + by);
+    });
+    for (const index of face) {
+      normals[index * 3] += x;
+      normals[index * 3 + 1] += y;
+      normals[index * 3 + 2] += z;
+    }
+  }
+
+  for (let index = 0; index < positions.count; index += 1) {
+    const offset = index * 3;
+    const length = Math.hypot(normals[offset], normals[offset + 1], normals[offset + 2]) || 1;
+    normals[offset] /= length;
+    normals[offset + 1] /= length;
+    normals[offset + 2] /= length;
+  }
+  geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+}

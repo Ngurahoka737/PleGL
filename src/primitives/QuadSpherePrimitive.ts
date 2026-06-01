@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { recalculateQuadNormals } from '../utils/GeometryUtils';
 
 interface Vertex {
   position: THREE.Vector3;
@@ -189,12 +190,12 @@ export function createQuadSphereGeometry(options: QuadSphereOptions = {}): THREE
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingSphere();
   geometry.userData.primitive = 'quad-sphere';
   geometry.userData.options = { radius, subdivisions, catmullClarkIterations: iterations };
   geometry.userData.quadFaces = topology.faces.map((face) => [...face.indices]);
   geometry.userData.wireframeLevels = createWireframeLevels(topology, 2 ** totalLevels);
+  recalculateQuadNormals(geometry);
+  geometry.computeBoundingSphere();
   return geometry;
 }
 

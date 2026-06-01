@@ -13,11 +13,16 @@ void Mesh::rebuildDerivedData() {
       neighbors[b].push_back(a);
     }
   }
-  for (std::size_t i = 0; i < indices.size(); i += 3) {
-    const auto a = indices[i], b = indices[i + 1], c = indices[i + 2];
-    const Vec3 ab = vertices[b] - vertices[a], ac = vertices[c] - vertices[a];
-    const Vec3 n{ab.y * ac.z - ab.z * ac.y, ab.z * ac.x - ab.x * ac.z, ab.x * ac.y - ab.y * ac.x};
-    normals[a] += n; normals[b] += n; normals[c] += n;
+  for (const auto& q : quads) {
+    Vec3 normal{};
+    for (int i = 0; i < 4; ++i) {
+      const auto& a = vertices[q[i]];
+      const auto& b = vertices[q[(i + 1) % 4]];
+      normal.x += (a.y - b.y) * (a.z + b.z);
+      normal.y += (a.z - b.z) * (a.x + b.x);
+      normal.z += (a.x - b.x) * (a.y + b.y);
+    }
+    for (const auto vertex : q) normals[vertex] += normal;
   }
   for (auto& normal : normals) normal = normal.normalized();
   for (auto& list : neighbors) {
