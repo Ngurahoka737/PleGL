@@ -25,8 +25,11 @@ int main() {
   if (!Brush::draw(mesh, {0, 0, 1}, settings)) return 2;
   if (!Brush::smooth(mesh, {0, 0, 1}, settings)) return 3;
   if (!Brush::clay(mesh, {0, 0, 1}, {0, 0, 1}, settings)) return 4;
+  const auto verticesBeforeSubdivision = mesh.vertices.size();
+  PrimitiveGenerator::subdivideCurrent(mesh);
+  if (mesh.vertices.size() <= verticesBeforeSubdivision) return 5;
   std::cout << "vertices=" << mesh.vertices.size()
             << " triangles=" << mesh.indices.size() / 3
-            << " manifold=true brushes=draw,smooth,clay\n";
+            << " manifold=true brushes=draw,smooth,clay subdivideCurrent=true\n";
   return 0;
 }

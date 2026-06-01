@@ -8,6 +8,7 @@ EMSCRIPTEN_BINDINGS(sculpt_engine) {
   class_<SculptEngine>("SculptEngine")
     .constructor<>()
     .function("createQuadSphere", &SculptEngine::createQuadSphere)
+    .function("subdivideCurrent", &SculptEngine::subdivideCurrent)
     .function("applyDraw", &SculptEngine::applyDraw)
     .function("applySmooth", &SculptEngine::applySmooth)
     .function("applyClay", &SculptEngine::applyClay)

@@ -193,6 +193,7 @@ export function createQuadSphereGeometry(options: QuadSphereOptions = {}): THREE
   geometry.computeBoundingSphere();
   geometry.userData.primitive = 'quad-sphere';
   geometry.userData.options = { radius, subdivisions, catmullClarkIterations: iterations };
+  geometry.userData.quadFaces = topology.faces.map((face) => [...face.indices]);
   geometry.userData.wireframeLevels = createWireframeLevels(topology, 2 ** totalLevels);
   return geometry;
 }

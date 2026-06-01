@@ -62,3 +62,8 @@ Mesh PrimitiveGenerator::quadSphere(float radius, int subdivisionLevel) {
   mesh.rebuildDerivedData();
   return mesh;
 }
+
+void PrimitiveGenerator::subdivideCurrent(Mesh& mesh) {
+  subdivide(mesh);
+  mesh.rebuildDerivedData();
+}

@@ -26,7 +26,7 @@ export class UIManager {
         <h2>Quad Sphere</h2>
         <label>Subdivision level <output data-value="subdivisions"></output><input data-setting="subdivisions" type="range" min="0" max="7" step="1"></label>
         <button data-action="reset">Rebuild manifold mesh</button>
-        <p class="hint">Drag Subdivision level to preview density. Left drag on the mesh sculpts.</p>
+        <p class="hint">Higher levels preserve the current sculpt. Lower levels restore an available coarse snapshot. Rebuild resets the mesh.</p>
       </aside>
       <footer><span data-stats></span><span data-topology></span></footer>
     `;
@@ -67,9 +67,10 @@ export class UIManager {
       this.meshManager.setWireframe((event.target as HTMLInputElement).checked);
     });
     this.root.querySelector<HTMLInputElement>('[data-setting="subdivisions"]')!.addEventListener('input', (event) => {
-      this.subdivisions = Number((event.target as HTMLInputElement).value);
+      this.subdivisions = this.meshManager.setSubdivisionLevel(Number((event.target as HTMLInputElement).value));
       this.syncInputs();
-      this.previewQuadSphere();
+      this.brushEngine.geometryReplaced();
+      this.refreshStats();
     });
     this.root.querySelector('[data-action="reset"]')!.addEventListener('click', () => {
       this.meshManager.replaceQuadSphere({ subdivisions: this.subdivisions });
@@ -93,11 +94,4 @@ export class UIManager {
     set('subdivisions', this.subdivisions);
   }
 
-  private previewQuadSphere(): void {
-    this.meshManager.replaceQuadSphere({
-      subdivisions: this.subdivisions,
-    });
-    this.brushEngine.geometryReplaced();
-    this.refreshStats();
-  }
 }

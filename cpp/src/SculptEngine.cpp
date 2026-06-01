@@ -2,6 +2,7 @@
 
 SculptEngine::SculptEngine() { createQuadSphere(1.0f, 5); }
 void SculptEngine::createQuadSphere(float radius, int level) { mesh_ = PrimitiveGenerator::quadSphere(radius, level); }
+void SculptEngine::subdivideCurrent() { PrimitiveGenerator::subdivideCurrent(mesh_); }
 bool SculptEngine::applyDraw(float x,float y,float z,float radius,float strength,bool invert) {
   return Brush::draw(mesh_, {x,y,z}, {radius,strength,invert});
 }
