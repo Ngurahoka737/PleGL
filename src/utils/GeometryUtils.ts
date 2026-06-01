@@ -51,6 +51,18 @@ export function validateClosedIndexedGeometry(geometry: THREE.BufferGeometry): G
 
 export function buildVertexNeighbors(geometry: THREE.BufferGeometry): number[][] {
   const position = geometry.getAttribute('position');
+  const quadFaces = geometry.userData.quadFaces as number[][] | undefined;
+  if (quadFaces) {
+    const neighbors = Array.from({ length: position.count }, () => new Set<number>());
+    for (const face of quadFaces) {
+      face.forEach((a, index) => {
+        const b = face[(index + 1) % face.length];
+        neighbors[a].add(b);
+        neighbors[b].add(a);
+      });
+    }
+    return neighbors.map((items) => [...items]);
+  }
   const index = geometry.getIndex();
   if (!index) throw new Error('Expected indexed geometry.');
   const neighbors = Array.from({ length: position.count }, () => new Set<number>());

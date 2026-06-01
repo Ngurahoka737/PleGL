@@ -44,3 +44,5 @@ The TypeScript topology check verifies the browser fallback. The native C++ smok
 Clay Brush is an original plane-based implementation: each dab offsets a surface plane from the hit point and moves affected vertices toward that plane using a smooth radial falloff.
 
 Increasing the subdivision level applies Catmull-Clark smoothing to the active sculpted mesh, matching the default ZBrush Divide behavior with `Smt` enabled instead of rebuilding the primitive. Lowering the level restores an available coarse snapshot. Use `Rebuild manifold mesh` only when an explicit reset is intended.
+
+Brush smoothing uses the original quad edges rather than the render-only triangle diagonals, so Smooth Brush remains uniform after Divide.
