@@ -48,3 +48,5 @@ Increasing the subdivision level applies Catmull-Clark smoothing to the active s
 Brush smoothing uses the original quad edges rather than the render-only triangle diagonals, so Smooth Brush remains uniform after Divide.
 
 Surface normals are also averaged from the original quad faces. The triangle diagonals used only for WebGL rendering no longer create visible shading lines on sculpted areas after Divide.
+
+The wireframe overlay keeps a stable visual hierarchy after Divide: major lines repeat every four minor cells, medium lines every two minor cells, and newly inserted lines remain subtle.

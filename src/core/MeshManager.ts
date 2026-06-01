@@ -208,8 +208,11 @@ export class MeshManager {
     levels.forEach((indices, level) => {
       for (let index = 0; index < indices.length; index += 2) {
         const a = indices[index], b = indices[index + 1], midpoint = edgePoints.get(key(a, b))!;
-        inherited.set(key(a, midpoint), level);
-        inherited.set(key(midpoint, b), level);
+        // Each Divide inserts a new minor line between the existing lines.
+        // Promote inherited lines so the visible hierarchy stays 4x4 and 2x2.
+        const promotedLevel = level === 2 ? 1 : 0;
+        inherited.set(key(a, midpoint), promotedLevel);
+        inherited.set(key(midpoint, b), promotedLevel);
       }
     });
     const result = [[], [], []] as number[][];
