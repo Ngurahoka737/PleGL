@@ -7,5 +7,6 @@ export class ShortcutManager {
     if (event.key === '1') this.onBrush('Draw');
     if (event.key === '2') this.onBrush('Smooth');
     if (event.key === '3') this.onBrush('Clay');
+    if (event.key === '4') this.onBrush('Move');
   };
 }

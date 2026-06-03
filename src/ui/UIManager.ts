@@ -19,6 +19,7 @@ export class UIManager {
         <button class="active" data-brush="Draw">Draw <kbd>1</kbd></button>
         <button data-brush="Smooth">Smooth <kbd>2</kbd></button>
         <button data-brush="Clay">Clay <kbd>3</kbd></button>
+        <button data-brush="Move">Move <kbd>4</kbd></button>
         <label>Radius <output data-value="radius"></output><input data-setting="radius" type="range" min="0.04" max="0.7" step="0.01"></label>
         <label>Strength <output data-value="strength"></output><input data-setting="strength" type="range" min="0.001" max="0.04" step="0.001"></label>
         <label class="check"><input data-setting="invert" type="checkbox"> Invert</label>
@@ -81,6 +82,7 @@ export class UIManager {
       if (event.key === '1') (this.root.querySelector('[data-brush="Draw"]') as HTMLButtonElement).click();
       if (event.key === '2') (this.root.querySelector('[data-brush="Smooth"]') as HTMLButtonElement).click();
       if (event.key === '3') (this.root.querySelector('[data-brush="Clay"]') as HTMLButtonElement).click();
+      if (event.key === '4') (this.root.querySelector('[data-brush="Move"]') as HTMLButtonElement).click();
     });
   }
 

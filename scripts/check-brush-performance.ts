@@ -16,13 +16,16 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function measure(label: 'draw' | 'smooth'): number {
+function measure(label: 'draw' | 'smooth' | 'move'): number {
   const times: number[] = [];
+  if (label === 'move') manager.sculptEngine.beginMove(centers[0], settings);
   for (const center of centers) {
     const start = performance.now();
     const changed = label === 'draw'
       ? manager.sculptEngine.applyDraw(center, settings)
-      : manager.sculptEngine.applySmooth(center, settings);
+      : label === 'move'
+        ? manager.sculptEngine.applyMove(center.clone().sub(centers[0]), settings)
+        : manager.sculptEngine.applySmooth(center, settings);
     if (changed) manager.recalculateSurface();
     times.push(performance.now() - start);
   }
@@ -32,10 +35,12 @@ function measure(label: 'draw' | 'smooth'): number {
 
 const drawAverageMs = measure('draw');
 const smoothAverageMs = measure('smooth');
+const moveAverageMs = measure('move');
 
 console.log({
   level: 7,
   vertices: manager.mesh.geometry.getAttribute('position').count,
   drawAverageMs: Number(drawAverageMs.toFixed(3)),
   smoothAverageMs: Number(smoothAverageMs.toFixed(3)),
+  moveAverageMs: Number(moveAverageMs.toFixed(3)),
 });

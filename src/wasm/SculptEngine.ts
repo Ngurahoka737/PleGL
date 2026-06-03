@@ -3,6 +3,7 @@ import type { BrushSettings } from '../sculpt/Brush';
 import { DrawBrush } from '../sculpt/brushes/DrawBrush';
 import { SmoothBrush } from '../sculpt/brushes/SmoothBrush';
 import { ClayBrush } from '../sculpt/brushes/ClayBrush';
+import { MoveBrush } from '../sculpt/brushes/MoveBrush';
 import { buildVertexNeighbors, queryBrushCandidates } from '../utils/GeometryUtils';
 
 interface EmbindVector<T> {
@@ -18,6 +19,8 @@ interface WasmEngine {
   applyDraw(x: number, y: number, z: number, radius: number, strength: number, invert: boolean): boolean;
   applySmooth(x: number, y: number, z: number, radius: number, strength: number): boolean;
   applyClay(x: number, y: number, z: number, nx: number, ny: number, nz: number, radius: number, strength: number, invert: boolean): boolean;
+  beginMove(x: number, y: number, z: number, radius: number): void;
+  applyMove(dx: number, dy: number, dz: number, invert: boolean): boolean;
   beginStroke(): void;
   positions(): EmbindVector<number>;
   normals(): EmbindVector<number>;
@@ -33,6 +36,7 @@ export class SculptEngine {
   private readonly drawFallback = new DrawBrush();
   private readonly smoothFallback = new SmoothBrush();
   private readonly clayFallback = new ClayBrush();
+  private readonly moveFallback = new MoveBrush();
 
   constructor(private readonly getGeometry: () => THREE.BufferGeometry) {
     void this.load();
@@ -119,6 +123,31 @@ export class SculptEngine {
       neighbors: buildVertexNeighbors(geometry),
       candidates,
     }, planeNormal);
+  }
+
+  beginMove(center: THREE.Vector3, settings: BrushSettings): void {
+    if (this.wasm) {
+      this.wasm.beginMove(center.x, center.y, center.z, settings.radius);
+      return;
+    }
+    const geometry = this.getGeometry();
+    const candidates = queryBrushCandidates(geometry, center, settings.radius);
+    this.moveFallback.begin({
+      geometry,
+      center,
+      settings,
+      neighbors: buildVertexNeighbors(geometry),
+      candidates,
+    });
+  }
+
+  applyMove(delta: THREE.Vector3, settings: BrushSettings): boolean {
+    if (this.wasm) {
+      const changed = this.wasm.applyMove(delta.x, delta.y, delta.z, settings.invert);
+      if (changed) this.syncPositionsAndNormals();
+      return changed;
+    }
+    return this.moveFallback.applyMove(this.getGeometry(), delta, settings);
   }
 
   private async load(): Promise<void> {

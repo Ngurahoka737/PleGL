@@ -37,10 +37,12 @@ int main() {
   if (!isClosedManifold(mesh)) return 6;
   SculptEngine engine;
   engine.applyDraw(0, 0, 1, 0.3f, 0.01f, false);
+  engine.beginMove(0, 0, 1, 0.3f);
+  if (!engine.applyMove(0.1f, 0.0f, 0.0f, false)) return 8;
   engine.subdivideCurrent();
-  if (!engine.restoreCoarseLevel()) return 7;
+  if (!engine.restoreCoarseLevel()) return 9;
   std::cout << "vertices=" << mesh.vertices.size()
             << " triangles=" << mesh.indices.size() / 3
-            << " manifold=true brushes=draw,smooth,clay divide=true restoreCoarse=true\n";
+            << " manifold=true brushes=draw,smooth,clay,move divide=true restoreCoarse=true\n";
   return 0;
 }

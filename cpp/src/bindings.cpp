@@ -13,6 +13,8 @@ EMSCRIPTEN_BINDINGS(sculpt_engine) {
     .function("applyDraw", &SculptEngine::applyDraw)
     .function("applySmooth", &SculptEngine::applySmooth)
     .function("applyClay", &SculptEngine::applyClay)
+    .function("beginMove", &SculptEngine::beginMove)
+    .function("applyMove", &SculptEngine::applyMove)
     .function("beginStroke", &SculptEngine::beginStroke)
     .function("undo", &SculptEngine::undo)
     .function("redo", &SculptEngine::redo)
