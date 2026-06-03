@@ -56,3 +56,5 @@ Subdivision levels behave like a lightweight multires stack in the browser fallb
 High subdivision sculpting is optimized for interactive strokes: pointer moves are sampled once per animation frame, repeated dabs are skipped when they are too close together, normals are recalculated only around the brush footprint, and expensive bounds/spatial-grid rebuilds are delayed until the stroke ends.
 
 Move Brush follows the grab-style sculpt workflow: vertices under the brush are cached at stroke start with falloff weights, then dragged along the camera plane by the mouse delta. Press `4` to activate it.
+
+Smooth Brush follows Blender's sculpt smoothing pattern: brush strength is split into up to four iterations, each iteration computes neighbor-average target positions first and then applies falloff-scaled translations.

@@ -1,10 +1,21 @@
 #include "Brush.hpp"
 #include <algorithm>
+#include <vector>
 
 namespace {
 float falloff(float distance, float radius) {
   const float t = std::clamp(1.0f - distance / radius, 0.0f, 1.0f);
   return t * t * (3.0f - 2.0f * t);
+}
+
+std::vector<float> smoothIterationStrengths(float strength) {
+  constexpr int max_iterations = 4;
+  const float clamped = std::clamp(strength, 0.0f, 1.0f);
+  const int full_iterations = static_cast<int>(clamped * max_iterations);
+  const float last = max_iterations * (clamped - static_cast<float>(full_iterations) / max_iterations);
+  std::vector<float> result(full_iterations, 1.0f);
+  if (last > 0.0f) result.push_back(last);
+  return result;
 }
 }
 
@@ -25,22 +36,29 @@ bool Brush::draw(Mesh& mesh, const Vec3& center, const BrushSettings& settings) 
 }
 
 bool Brush::smooth(Mesh& mesh, const Vec3& center, const BrushSettings& settings) {
-  auto next = mesh.vertices;
   bool changed = false;
   const float radius_squared = settings.radius * settings.radius;
-  for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
-    const Vec3 offset = mesh.vertices[i] - center;
-    const float distance_squared = offset.lengthSquared();
-    if (distance_squared > radius_squared || mesh.neighbors[i].empty()) continue;
-    const float distance = std::sqrt(distance_squared);
-    Vec3 average{};
-    for (const auto neighbor : mesh.neighbors[i]) average += mesh.vertices[neighbor];
-    average = average * (1.0f / static_cast<float>(mesh.neighbors[i].size()));
-    const float influence = std::clamp(settings.strength * 5.0f * falloff(distance, settings.radius), 0.0f, 1.0f);
-    next[i] = mesh.vertices[i] * (1.0f - influence) + average * influence;
+  for (const float strength : smoothIterationStrengths(settings.strength * 5.0f)) {
+    auto next = mesh.vertices;
+    bool iteration_changed = false;
+    for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
+      const Vec3 offset = mesh.vertices[i] - center;
+      const float distance_squared = offset.lengthSquared();
+      if (distance_squared > radius_squared || mesh.neighbors[i].empty()) continue;
+      const float distance = std::sqrt(distance_squared);
+      Vec3 average{};
+      for (const auto neighbor : mesh.neighbors[i]) average += mesh.vertices[neighbor];
+      average = average * (1.0f / static_cast<float>(mesh.neighbors[i].size()));
+      const float factor = std::clamp(strength * falloff(distance, settings.radius), 0.0f, 1.0f);
+      if (factor <= 0.0f) continue;
+      next[i] = mesh.vertices[i] + (average - mesh.vertices[i]) * factor;
+      iteration_changed = true;
+    }
+    if (!iteration_changed) continue;
+    mesh.vertices = std::move(next);
     changed = true;
   }
-  if (changed) { mesh.vertices = std::move(next); mesh.rebuildDerivedData(); }
+  if (changed) mesh.rebuildDerivedData();
   return changed;
 }
 
