@@ -13,23 +13,43 @@ export class UIManager {
     private readonly brushEngine: BrushEngine,
   ) {
     root.innerHTML = `
-      <header><strong>Quad Sphere Sculpt</strong><span>Shared topology study</span></header>
+      <header>
+        <div class="brand">
+          <strong>Quad Sphere Sculpt</strong>
+          <span>Seamless multires sculpting</span>
+        </div>
+        <div class="header-pills">
+          <span class="pill">C++ / WASM ready</span>
+          <span class="pill accent">Quad topology</span>
+        </div>
+      </header>
       <aside>
-        <h2>Brush</h2>
-        <button class="active" data-brush="Draw">Draw <kbd>1</kbd></button>
-        <button data-brush="Smooth">Smooth <kbd>2</kbd></button>
-        <button data-brush="Clay">Clay <kbd>3</kbd></button>
-        <button data-brush="Move">Move <kbd>4</kbd></button>
-        <label>Radius <output data-value="radius"></output><input data-setting="radius" type="range" min="0.04" max="0.7" step="0.01"></label>
-        <label>Strength <output data-value="strength"></output><input data-setting="strength" type="range" min="0.001" max="0.04" step="0.001"></label>
-        <label class="check"><input data-setting="invert" type="checkbox"> Invert</label>
-        <label class="check"><input data-setting="wireframe" type="checkbox"> Wireframe</label>
-        <h2>Quad Sphere</h2>
-        <label>Subdivision level <output data-value="subdivisions"></output><input data-setting="subdivisions" type="range" min="0" max="7" step="1"></label>
-        <button data-action="reset">Rebuild manifold mesh</button>
-        <p class="hint">Higher levels preserve the current sculpt. Lower levels restore an available coarse snapshot. Rebuild resets the mesh.</p>
+        <section class="panel-card">
+          <h2>Brush</h2>
+          <div class="brush-grid">
+            <button class="active" data-brush="Draw"><span>Draw</span><kbd>1</kbd></button>
+            <button data-brush="Smooth"><span>Smooth</span><kbd>2</kbd></button>
+            <button data-brush="Clay"><span>Clay</span><kbd>3</kbd></button>
+            <button data-brush="Move"><span>Move</span><kbd>4</kbd></button>
+          </div>
+          <label class="control">Radius <output data-value="radius"></output><input data-setting="radius" type="range" min="0.04" max="0.7" step="0.01"></label>
+          <label class="control">Strength <output data-value="strength"></output><input data-setting="strength" type="range" min="0.001" max="0.04" step="0.001"></label>
+          <div class="toggle-row">
+            <label class="check"><input data-setting="invert" type="checkbox"><span>Invert</span></label>
+            <label class="check"><input data-setting="wireframe" type="checkbox"><span>Wireframe</span></label>
+          </div>
+        </section>
+        <section class="panel-card">
+          <h2>Quad Sphere</h2>
+          <label class="control">Subdivision level <output data-value="subdivisions"></output><input data-setting="subdivisions" type="range" min="0" max="7" step="1"></label>
+          <button class="danger" data-action="reset"><span>Rebuild manifold mesh</span></button>
+          <p class="hint">Higher levels preserve the current sculpt. Lower levels restore an available coarse snapshot. Rebuild resets the mesh.</p>
+        </section>
       </aside>
-      <footer><span data-stats></span><span data-topology></span></footer>
+      <footer>
+        <span class="status-chip" data-stats></span>
+        <span class="status-chip" data-topology></span>
+      </footer>
     `;
     this.stats = root.querySelector('[data-stats]')!;
     this.topology = root.querySelector('[data-topology]')!;
