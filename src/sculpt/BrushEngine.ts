@@ -43,7 +43,13 @@ export class BrushEngine {
     canvas.addEventListener('pointerup', (event) => {
       this.sculpting = false;
       sceneManager.controls.enabled = true;
+      meshManager.finishStroke();
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    });
+    canvas.addEventListener('pointercancel', () => {
+      this.sculpting = false;
+      sceneManager.controls.enabled = true;
+      meshManager.finishStroke();
     });
     canvas.addEventListener('pointerleave', () => {
       if (!this.sculpting) this.cursor.visible = false;

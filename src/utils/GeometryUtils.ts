@@ -50,6 +50,9 @@ export function validateClosedIndexedGeometry(geometry: THREE.BufferGeometry): G
 }
 
 export function buildVertexNeighbors(geometry: THREE.BufferGeometry): number[][] {
+  const cached = geometry.userData.vertexNeighbors as number[][] | undefined;
+  if (cached) return cached;
+
   const position = geometry.getAttribute('position');
   const quadFaces = geometry.userData.quadFaces as number[][] | undefined;
   if (quadFaces) {
@@ -61,7 +64,9 @@ export function buildVertexNeighbors(geometry: THREE.BufferGeometry): number[][]
         neighbors[b].add(a);
       });
     }
-    return neighbors.map((items) => [...items]);
+    const result = neighbors.map((items) => [...items]);
+    geometry.userData.vertexNeighbors = result;
+    return result;
   }
   const index = geometry.getIndex();
   if (!index) throw new Error('Expected indexed geometry.');
@@ -74,7 +79,68 @@ export function buildVertexNeighbors(geometry: THREE.BufferGeometry): number[][]
     neighbors[b].add(a).add(c);
     neighbors[c].add(a).add(b);
   }
-  return neighbors.map((items) => [...items]);
+  const result = neighbors.map((items) => [...items]);
+  geometry.userData.vertexNeighbors = result;
+  return result;
+}
+
+interface BrushGrid {
+  cellSize: number;
+  cells: Map<string, number[]>;
+}
+
+const BRUSH_GRID_CELL_SIZE = 0.12;
+const BRUSH_GRID_MARGIN = 0.08;
+
+const cellKey = (x: number, y: number, z: number): string => `${x}:${y}:${z}`;
+
+export function invalidateBrushAcceleration(geometry: THREE.BufferGeometry): void {
+  delete geometry.userData.brushGrid;
+}
+
+export function rebuildBrushAcceleration(geometry: THREE.BufferGeometry): void {
+  const positions = geometry.getAttribute('position');
+  const cells = new Map<string, number[]>();
+
+  for (let index = 0; index < positions.count; index += 1) {
+    const x = Math.floor(positions.getX(index) / BRUSH_GRID_CELL_SIZE);
+    const y = Math.floor(positions.getY(index) / BRUSH_GRID_CELL_SIZE);
+    const z = Math.floor(positions.getZ(index) / BRUSH_GRID_CELL_SIZE);
+    const key = cellKey(x, y, z);
+    const list = cells.get(key);
+    if (list) list.push(index);
+    else cells.set(key, [index]);
+  }
+
+  geometry.userData.brushGrid = { cellSize: BRUSH_GRID_CELL_SIZE, cells } satisfies BrushGrid;
+}
+
+export function queryBrushCandidates(
+  geometry: THREE.BufferGeometry,
+  center: THREE.Vector3,
+  radius: number,
+): number[] {
+  if (!geometry.userData.brushGrid) rebuildBrushAcceleration(geometry);
+  const grid = geometry.userData.brushGrid as BrushGrid;
+  const searchRadius = radius + BRUSH_GRID_MARGIN;
+  const minX = Math.floor((center.x - searchRadius) / grid.cellSize);
+  const minY = Math.floor((center.y - searchRadius) / grid.cellSize);
+  const minZ = Math.floor((center.z - searchRadius) / grid.cellSize);
+  const maxX = Math.floor((center.x + searchRadius) / grid.cellSize);
+  const maxY = Math.floor((center.y + searchRadius) / grid.cellSize);
+  const maxZ = Math.floor((center.z + searchRadius) / grid.cellSize);
+  const result: number[] = [];
+
+  for (let x = minX; x <= maxX; x += 1) {
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let z = minZ; z <= maxZ; z += 1) {
+        const vertices = grid.cells.get(cellKey(x, y, z));
+        if (vertices) result.push(...vertices);
+      }
+    }
+  }
+
+  return result;
 }
 
 export function recalculateQuadNormals(geometry: THREE.BufferGeometry): void {

@@ -6,16 +6,19 @@ export class DrawBrush extends Brush {
   private readonly position = new THREE.Vector3();
   private readonly normal = new THREE.Vector3();
 
-  apply({ geometry, center, settings }: BrushContext): boolean {
+  apply({ geometry, center, settings, candidates }: BrushContext): boolean {
     const positions = geometry.getAttribute('position');
     const normals = geometry.getAttribute('normal');
     const direction = settings.invert ? -1 : 1;
+    const radiusSquared = settings.radius * settings.radius;
+    const indices = candidates ?? Array.from({ length: positions.count }, (_, index) => index);
     let changed = false;
 
-    for (let index = 0; index < positions.count; index += 1) {
+    for (const index of indices) {
       this.position.fromBufferAttribute(positions, index);
-      const distance = this.position.distanceTo(center);
-      if (distance > settings.radius) continue;
+      const distanceSquared = this.position.distanceToSquared(center);
+      if (distanceSquared > radiusSquared) continue;
+      const distance = Math.sqrt(distanceSquared);
       this.normal.fromBufferAttribute(normals, index);
       this.position.addScaledVector(
         this.normal,

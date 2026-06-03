@@ -11,6 +11,7 @@ struct Vec3 {
   Vec3 operator*(float scalar) const { return {x * scalar, y * scalar, z * scalar}; }
   Vec3& operator+=(const Vec3& other) { x += other.x; y += other.y; z += other.z; return *this; }
   float dot(const Vec3& other) const { return x * other.x + y * other.y + z * other.z; }
+  float lengthSquared() const { return x * x + y * y + z * z; }
   float length() const { return std::sqrt(x * x + y * y + z * z); }
   Vec3 normalized() const { const float len = length(); return len > 0 ? *this * (1.0f / len) : Vec3{}; }
 };

@@ -11,6 +11,7 @@ export interface BrushContext {
   center: THREE.Vector3;
   settings: BrushSettings;
   neighbors: number[][];
+  candidates?: number[];
 }
 
 export abstract class Brush {

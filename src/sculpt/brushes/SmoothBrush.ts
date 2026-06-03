@@ -7,15 +7,18 @@ export class SmoothBrush extends Brush {
   private readonly average = new THREE.Vector3();
   private readonly neighbor = new THREE.Vector3();
 
-  apply({ geometry, center, settings, neighbors }: BrushContext): boolean {
+  apply({ geometry, center, settings, neighbors, candidates }: BrushContext): boolean {
     const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
     const next = new Float32Array(positions.array as ArrayLike<number>);
+    const radiusSquared = settings.radius * settings.radius;
+    const indices = candidates ?? Array.from({ length: positions.count }, (_, index) => index);
     let changed = false;
 
-    for (let index = 0; index < positions.count; index += 1) {
+    for (const index of indices) {
       this.position.fromBufferAttribute(positions, index);
-      const distance = this.position.distanceTo(center);
-      if (distance > settings.radius || neighbors[index].length === 0) continue;
+      const distanceSquared = this.position.distanceToSquared(center);
+      if (distanceSquared > radiusSquared || neighbors[index].length === 0) continue;
+      const distance = Math.sqrt(distanceSquared);
 
       this.average.set(0, 0, 0);
       for (const neighborIndex of neighbors[index]) {

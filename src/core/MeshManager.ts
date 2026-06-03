@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { createQuadSphereGeometry, type QuadSphereOptions } from '../primitives/QuadSpherePrimitive';
-import { recalculateQuadNormals } from '../utils/GeometryUtils';
+import {
+  buildVertexNeighbors,
+  invalidateBrushAcceleration,
+  rebuildBrushAcceleration,
+  recalculateQuadNormals,
+} from '../utils/GeometryUtils';
 import { SculptEngine } from '../wasm/SculptEngine';
 
 export class MeshManager {
@@ -21,6 +26,7 @@ export class MeshManager {
     this.mesh = new THREE.Mesh(createQuadSphereGeometry(options), material);
     this.subdivisionLevel = (this.mesh.geometry.userData.options as Required<QuadSphereOptions>).subdivisions;
     this.levelGeometries.set(this.subdivisionLevel, this.mesh.geometry);
+    rebuildBrushAcceleration(this.mesh.geometry);
     this.sculptEngine = new SculptEngine(() => this.mesh.geometry);
     scene.add(this.mesh);
     this.mesh.add(this.wireframeOverlay);
@@ -34,6 +40,7 @@ export class MeshManager {
     const resolved = this.mesh.geometry.userData.options as Required<QuadSphereOptions>;
     this.subdivisionLevel = resolved.subdivisions;
     this.levelGeometries.set(this.subdivisionLevel, this.mesh.geometry);
+    rebuildBrushAcceleration(this.mesh.geometry);
     this.sculptEngine.createQuadSphere(resolved.radius, resolved.subdivisions);
     this.rebuildWireframeOverlay();
   }
@@ -43,12 +50,20 @@ export class MeshManager {
     if (clamped === this.subdivisionLevel) return this.subdivisionLevel;
 
     if (clamped < this.subdivisionLevel) {
+      this.propagateHighLevelEdits(clamped);
       const previous = this.levelGeometries.get(clamped);
       if (!previous) return this.subdivisionLevel;
       this.mesh.geometry = previous;
       this.subdivisionLevel = clamped;
       this.sculptEngine.restoreCoarseLevel();
-      this.discardLevelsAbove(clamped);
+      this.rebuildWireframeOverlay();
+      return this.subdivisionLevel;
+    }
+
+    const saved = this.sculptEngine.isWasmActive() ? undefined : this.levelGeometries.get(clamped);
+    if (saved) {
+      this.mesh.geometry = saved;
+      this.subdivisionLevel = clamped;
       this.rebuildWireframeOverlay();
       return this.subdivisionLevel;
     }
@@ -65,17 +80,24 @@ export class MeshManager {
   }
 
   recalculateSurface(): void {
+    this.discardLevelsAbove(this.subdivisionLevel);
     const position = this.mesh.geometry.getAttribute('position');
     position.needsUpdate = true;
     recalculateQuadNormals(this.mesh.geometry);
     this.mesh.geometry.getAttribute('normal').needsUpdate = true;
+    invalidateBrushAcceleration(this.mesh.geometry);
     this.mesh.geometry.computeBoundingSphere();
     this.mesh.geometry.computeBoundingBox();
     this.updateWireframeOverlay();
   }
 
+  finishStroke(): void {
+    rebuildBrushAcceleration(this.mesh.geometry);
+  }
+
   setWireframe(enabled: boolean): void {
     this.wireframeEnabled = enabled;
+    if (enabled) this.updateWireframeOverlay();
     this.wireframeOverlay.visible = enabled;
   }
 
@@ -110,6 +132,7 @@ export class MeshManager {
   }
 
   private updateWireframeOverlay(): void {
+    if (!this.wireframeEnabled) return;
     const source = this.mesh.geometry.getAttribute('position');
     for (const child of this.wireframeOverlay.children) {
       const lines = child as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
@@ -199,7 +222,48 @@ export class MeshManager {
     geometry.userData.wireframeLevels = this.subdivideWireframeLevels(nextFaces, source.userData.wireframeLevels as Uint32Array[], edgePoints);
     recalculateQuadNormals(geometry);
     geometry.computeBoundingSphere();
+    rebuildBrushAcceleration(geometry);
     return geometry;
+  }
+
+  private propagateHighLevelEdits(targetLevel: number): void {
+    for (let level = this.subdivisionLevel; level > targetLevel; level -= 1) {
+      const high = this.levelGeometries.get(level);
+      const coarse = this.levelGeometries.get(level - 1);
+      if (!high || !coarse) continue;
+      this.projectHighLevelToCoarse(coarse, high);
+    }
+  }
+
+  private projectHighLevelToCoarse(coarse: THREE.BufferGeometry, high: THREE.BufferGeometry): void {
+    const coarsePositions = coarse.getAttribute('position') as THREE.BufferAttribute;
+    const highPositions = high.getAttribute('position') as THREE.BufferAttribute;
+    const highNeighbors = buildVertexNeighbors(high);
+    const scratch = new THREE.Vector3();
+    const average = new THREE.Vector3();
+
+    for (let index = 0; index < coarsePositions.count; index += 1) {
+      scratch.fromBufferAttribute(highPositions, index);
+      average.set(0, 0, 0);
+      for (const neighbor of highNeighbors[index]) {
+        average.x += highPositions.getX(neighbor);
+        average.y += highPositions.getY(neighbor);
+        average.z += highPositions.getZ(neighbor);
+      }
+      if (highNeighbors[index].length > 0) {
+        average.multiplyScalar(1 / highNeighbors[index].length);
+        scratch.lerp(average, 0.35);
+      }
+      coarsePositions.setXYZ(index, scratch.x, scratch.y, scratch.z);
+    }
+
+    coarsePositions.needsUpdate = true;
+    recalculateQuadNormals(coarse);
+    coarse.getAttribute('normal').needsUpdate = true;
+    coarse.computeBoundingSphere();
+    coarse.computeBoundingBox();
+    invalidateBrushAcceleration(coarse);
+    rebuildBrushAcceleration(coarse);
   }
 
   private subdivideWireframeLevels(faces: number[][], levels: Uint32Array[], edgePoints: Map<string, number>): Uint32Array[] {

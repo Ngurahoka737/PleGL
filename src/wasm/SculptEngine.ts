@@ -3,7 +3,7 @@ import type { BrushSettings } from '../sculpt/Brush';
 import { DrawBrush } from '../sculpt/brushes/DrawBrush';
 import { SmoothBrush } from '../sculpt/brushes/SmoothBrush';
 import { ClayBrush } from '../sculpt/brushes/ClayBrush';
-import { buildVertexNeighbors } from '../utils/GeometryUtils';
+import { buildVertexNeighbors, queryBrushCandidates } from '../utils/GeometryUtils';
 
 interface EmbindVector<T> {
   size(): number;
@@ -70,7 +70,13 @@ export class SculptEngine {
       return changed;
     }
     const geometry = this.getGeometry();
-    return this.drawFallback.apply({ geometry, center, settings, neighbors: buildVertexNeighbors(geometry) });
+    return this.drawFallback.apply({
+      geometry,
+      center,
+      settings,
+      neighbors: buildVertexNeighbors(geometry),
+      candidates: queryBrushCandidates(geometry, center, settings.radius),
+    });
   }
 
   applySmooth(center: THREE.Vector3, settings: BrushSettings): boolean {
@@ -80,7 +86,13 @@ export class SculptEngine {
       return changed;
     }
     const geometry = this.getGeometry();
-    return this.smoothFallback.apply({ geometry, center, settings, neighbors: buildVertexNeighbors(geometry) });
+    return this.smoothFallback.apply({
+      geometry,
+      center,
+      settings,
+      neighbors: buildVertexNeighbors(geometry),
+      candidates: queryBrushCandidates(geometry, center, settings.radius),
+    });
   }
 
   applyClay(center: THREE.Vector3, planeNormal: THREE.Vector3, settings: BrushSettings): boolean {
@@ -99,6 +111,7 @@ export class SculptEngine {
       center,
       settings,
       neighbors: buildVertexNeighbors(geometry),
+      candidates: queryBrushCandidates(geometry, center, settings.radius),
     }, planeNormal);
   }
 
