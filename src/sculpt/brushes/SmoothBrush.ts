@@ -9,9 +9,9 @@ export class SmoothBrush extends Brush {
 
   apply({ geometry, center, settings, neighbors, candidates }: BrushContext): boolean {
     const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
-    const next = new Float32Array(positions.array as ArrayLike<number>);
     const radiusSquared = settings.radius * settings.radius;
     const indices = candidates ?? Array.from({ length: positions.count }, (_, index) => index);
+    const updates: Array<[number, number, number, number]> = [];
     let changed = false;
 
     for (const index of indices) {
@@ -28,11 +28,11 @@ export class SmoothBrush extends Brush {
       this.average.multiplyScalar(1 / neighbors[index].length);
       const influence = settings.strength * 5 * this.falloff(distance, settings.radius);
       this.position.lerp(this.average, THREE.MathUtils.clamp(influence, 0, 1));
-      this.position.toArray(next, index * 3);
+      updates.push([index, this.position.x, this.position.y, this.position.z]);
       changed = true;
     }
 
-    if (changed) positions.copyArray(next);
+    for (const [index, x, y, z] of updates) positions.setXYZ(index, x, y, z);
     return changed;
   }
 }

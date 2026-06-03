@@ -89,6 +89,11 @@ interface BrushGrid {
   cells: Map<string, number[]>;
 }
 
+interface QuadNormalData {
+  vertexFaces: number[][];
+  faceNormals: Float32Array;
+}
+
 const BRUSH_GRID_CELL_SIZE = 0.12;
 const BRUSH_GRID_MARGIN = 0.08;
 
@@ -143,7 +148,45 @@ export function queryBrushCandidates(
   return result;
 }
 
-export function recalculateQuadNormals(geometry: THREE.BufferGeometry): void {
+export function invalidateQuadNormalData(geometry: THREE.BufferGeometry): void {
+  delete geometry.userData.quadNormalData;
+}
+
+function buildQuadNormalData(geometry: THREE.BufferGeometry, quadFaces: number[][]): QuadNormalData {
+  const positions = geometry.getAttribute('position');
+  const vertexFaces = Array.from({ length: positions.count }, () => [] as number[]);
+  quadFaces.forEach((face, faceIndex) => {
+    for (const vertex of face) vertexFaces[vertex].push(faceIndex);
+  });
+  const data = { vertexFaces, faceNormals: new Float32Array(quadFaces.length * 3) };
+  geometry.userData.quadNormalData = data;
+  return data;
+}
+
+function writeFaceNormal(
+  positions: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+  face: number[],
+  target: Float32Array,
+  faceIndex: number,
+): void {
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  face.forEach((index, edge) => {
+    const next = face[(edge + 1) % face.length];
+    const ax = positions.getX(index), ay = positions.getY(index), az = positions.getZ(index);
+    const bx = positions.getX(next), by = positions.getY(next), bz = positions.getZ(next);
+    x += (ay - by) * (az + bz);
+    y += (az - bz) * (ax + bx);
+    z += (ax - bx) * (ay + by);
+  });
+  const offset = faceIndex * 3;
+  target[offset] = x;
+  target[offset + 1] = y;
+  target[offset + 2] = z;
+}
+
+export function recalculateQuadNormals(geometry: THREE.BufferGeometry, changedVertices?: number[]): void {
   const positions = geometry.getAttribute('position');
   const quadFaces = geometry.userData.quadFaces as number[][] | undefined;
   if (!quadFaces) {
@@ -151,32 +194,64 @@ export function recalculateQuadNormals(geometry: THREE.BufferGeometry): void {
     return;
   }
 
-  const normals = new Float32Array(positions.count * 3);
-  for (const face of quadFaces) {
-    let x = 0;
-    let y = 0;
-    let z = 0;
-    face.forEach((index, edge) => {
-      const next = face[(edge + 1) % face.length];
-      const ax = positions.getX(index), ay = positions.getY(index), az = positions.getZ(index);
-      const bx = positions.getX(next), by = positions.getY(next), bz = positions.getZ(next);
-      x += (ay - by) * (az + bz);
-      y += (az - bz) * (ax + bx);
-      z += (ax - bx) * (ay + by);
-    });
+  let normals = geometry.getAttribute('normal') as THREE.BufferAttribute | undefined;
+  if (!normals || normals.count !== positions.count) {
+    normals = new THREE.BufferAttribute(new Float32Array(positions.count * 3), 3);
+    geometry.setAttribute('normal', normals);
+  }
+
+  let data = geometry.userData.quadNormalData as QuadNormalData | undefined;
+  if (!data || data.faceNormals.length !== quadFaces.length * 3 || data.vertexFaces.length !== positions.count) {
+    data = buildQuadNormalData(geometry, quadFaces);
+  }
+
+  if (changedVertices?.length) {
+    const affectedFaces = new Set<number>();
+    const normalVertices = new Set<number>();
+    for (const vertex of changedVertices) {
+      for (const faceIndex of data.vertexFaces[vertex] ?? []) affectedFaces.add(faceIndex);
+    }
+    for (const faceIndex of affectedFaces) {
+      const face = quadFaces[faceIndex];
+      writeFaceNormal(positions, face, data.faceNormals, faceIndex);
+      for (const vertex of face) normalVertices.add(vertex);
+    }
+    for (const vertex of normalVertices) {
+      let x = 0;
+      let y = 0;
+      let z = 0;
+      for (const faceIndex of data.vertexFaces[vertex]) {
+        const offset = faceIndex * 3;
+        x += data.faceNormals[offset];
+        y += data.faceNormals[offset + 1];
+        z += data.faceNormals[offset + 2];
+      }
+      const length = Math.hypot(x, y, z) || 1;
+      normals.setXYZ(vertex, x / length, y / length, z / length);
+    }
+    normals.needsUpdate = true;
+    return;
+  }
+
+  const normalArray = normals.array as Float32Array;
+  normalArray.fill(0);
+  for (let faceIndex = 0; faceIndex < quadFaces.length; faceIndex += 1) {
+    const face = quadFaces[faceIndex];
+    writeFaceNormal(positions, face, data.faceNormals, faceIndex);
+    const offset = faceIndex * 3;
     for (const index of face) {
-      normals[index * 3] += x;
-      normals[index * 3 + 1] += y;
-      normals[index * 3 + 2] += z;
+      normalArray[index * 3] += data.faceNormals[offset];
+      normalArray[index * 3 + 1] += data.faceNormals[offset + 1];
+      normalArray[index * 3 + 2] += data.faceNormals[offset + 2];
     }
   }
 
   for (let index = 0; index < positions.count; index += 1) {
     const offset = index * 3;
-    const length = Math.hypot(normals[offset], normals[offset + 1], normals[offset + 2]) || 1;
-    normals[offset] /= length;
-    normals[offset + 1] /= length;
-    normals[offset + 2] /= length;
+    const length = Math.hypot(normalArray[offset], normalArray[offset + 1], normalArray[offset + 2]) || 1;
+    normalArray[offset] /= length;
+    normalArray[offset + 1] /= length;
+    normalArray[offset + 2] /= length;
   }
-  geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+  normals.needsUpdate = true;
 }

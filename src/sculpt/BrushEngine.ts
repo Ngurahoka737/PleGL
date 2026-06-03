@@ -12,8 +12,12 @@ export class BrushEngine {
   private readonly pointer = new THREE.Vector2();
   private readonly localCenter = new THREE.Vector3();
   private readonly localNormal = new THREE.Vector3();
+  private readonly lastDabCenter = new THREE.Vector3();
   private readonly cursor: THREE.Mesh;
   private sculpting = false;
+  private hasLastDab = false;
+  private pendingPointer: Pick<PointerEvent, 'clientX' | 'clientY'> | undefined;
+  private pointerFrame = 0;
 
   constructor(
     private readonly sceneManager: SceneManager,
@@ -31,23 +35,30 @@ export class BrushEngine {
     canvas.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 || !this.updateHit(event)) return;
       this.sculpting = true;
+      this.hasLastDab = false;
       meshManager.sculptEngine.beginStroke();
       sceneManager.controls.enabled = false;
       canvas.setPointerCapture(event.pointerId);
-      this.apply();
+      this.apply(true);
     });
     canvas.addEventListener('pointermove', (event) => {
-      const hit = this.updateHit(event);
-      if (this.sculpting && hit) this.apply();
+      if (!this.sculpting) {
+        this.updateHit(event);
+        return;
+      }
+      this.pendingPointer = { clientX: event.clientX, clientY: event.clientY };
+      this.schedulePointerFrame();
     });
     canvas.addEventListener('pointerup', (event) => {
       this.sculpting = false;
+      this.pendingPointer = undefined;
       sceneManager.controls.enabled = true;
       meshManager.finishStroke();
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     });
     canvas.addEventListener('pointercancel', () => {
       this.sculpting = false;
+      this.pendingPointer = undefined;
       sceneManager.controls.enabled = true;
       meshManager.finishStroke();
     });
@@ -62,7 +73,7 @@ export class BrushEngine {
 
   geometryReplaced(): void {}
 
-  private updateHit(event: PointerEvent): boolean {
+  private updateHit(event: Pick<PointerEvent, 'clientX' | 'clientY'>): boolean {
     const canvas = this.sceneManager.renderer.domElement;
     const rect = canvas.getBoundingClientRect();
     this.pointer.set(
@@ -83,13 +94,27 @@ export class BrushEngine {
     return true;
   }
 
-  private apply(): void {
+  private schedulePointerFrame(): void {
+    if (this.pointerFrame) return;
+    this.pointerFrame = requestAnimationFrame(() => {
+      this.pointerFrame = 0;
+      if (!this.sculpting || !this.pendingPointer) return;
+      const hit = this.updateHit(this.pendingPointer);
+      if (hit) this.apply(false);
+    });
+  }
+
+  private apply(force: boolean): void {
+    const spacing = this.settings.radius * 0.18;
+    if (!force && this.hasLastDab && this.localCenter.distanceToSquared(this.lastDabCenter) < spacing * spacing) return;
     const changed = this.activeBrush === 'Smooth'
       ? this.meshManager.sculptEngine.applySmooth(this.localCenter, this.settings)
       : this.activeBrush === 'Clay'
         ? this.meshManager.sculptEngine.applyClay(this.localCenter, this.localNormal, this.settings)
         : this.meshManager.sculptEngine.applyDraw(this.localCenter, this.settings);
     if (!changed) return;
+    this.lastDabCenter.copy(this.localCenter);
+    this.hasLastDab = true;
     this.meshManager.recalculateSurface();
     this.onChange?.();
   }

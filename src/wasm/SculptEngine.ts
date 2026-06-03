@@ -70,12 +70,14 @@ export class SculptEngine {
       return changed;
     }
     const geometry = this.getGeometry();
+    const candidates = queryBrushCandidates(geometry, center, settings.radius);
+    geometry.userData.lastBrushCandidates = candidates;
     return this.drawFallback.apply({
       geometry,
       center,
       settings,
       neighbors: buildVertexNeighbors(geometry),
-      candidates: queryBrushCandidates(geometry, center, settings.radius),
+      candidates,
     });
   }
 
@@ -86,12 +88,14 @@ export class SculptEngine {
       return changed;
     }
     const geometry = this.getGeometry();
+    const candidates = queryBrushCandidates(geometry, center, settings.radius);
+    geometry.userData.lastBrushCandidates = candidates;
     return this.smoothFallback.apply({
       geometry,
       center,
       settings,
       neighbors: buildVertexNeighbors(geometry),
-      candidates: queryBrushCandidates(geometry, center, settings.radius),
+      candidates,
     });
   }
 
@@ -106,12 +110,14 @@ export class SculptEngine {
       return changed;
     }
     const geometry = this.getGeometry();
+    const candidates = queryBrushCandidates(geometry, center, settings.radius);
+    geometry.userData.lastBrushCandidates = candidates;
     return this.clayFallback.applyWithPlane({
       geometry,
       center,
       settings,
       neighbors: buildVertexNeighbors(geometry),
-      candidates: queryBrushCandidates(geometry, center, settings.radius),
+      candidates,
     }, planeNormal);
   }
 

@@ -4,13 +4,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 export class SceneManager {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
-  readonly renderer = new THREE.WebGLRenderer({ antialias: true });
+  readonly renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
   readonly controls: OrbitControls;
 
   constructor(container: HTMLElement) {
     this.scene.background = new THREE.Color(0x15181d);
     this.camera.position.set(0, 0.4, 3.8);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     container.append(this.renderer.domElement);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;

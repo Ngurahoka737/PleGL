@@ -5,6 +5,7 @@ export class ClayBrush extends Brush {
   readonly name = 'Clay';
   private readonly position = new THREE.Vector3();
   private readonly planePoint = new THREE.Vector3();
+  private readonly planeOffset = new THREE.Vector3();
 
   applyWithPlane({ geometry, center, settings, candidates }: BrushContext, planeNormal: THREE.Vector3): boolean {
     const positions = geometry.getAttribute('position');
@@ -20,7 +21,7 @@ export class ClayBrush extends Brush {
       const distanceSquared = this.position.distanceToSquared(center);
       if (distanceSquared > radiusSquared) continue;
       const distance = Math.sqrt(distanceSquared);
-      const signedDistance = this.position.clone().sub(this.planePoint).dot(normal);
+      const signedDistance = this.planeOffset.copy(this.position).sub(this.planePoint).dot(normal);
       this.position.addScaledVector(normal, -signedDistance * settings.strength * 12 * this.falloff(distance, settings.radius));
       positions.setXYZ(index, this.position.x, this.position.y, this.position.z);
       changed = true;

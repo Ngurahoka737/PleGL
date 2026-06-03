@@ -81,18 +81,19 @@ export class MeshManager {
 
   recalculateSurface(): void {
     this.discardLevelsAbove(this.subdivisionLevel);
+    const affectedVertices = this.mesh.geometry.userData.lastBrushCandidates as number[] | undefined;
     const position = this.mesh.geometry.getAttribute('position');
     position.needsUpdate = true;
-    recalculateQuadNormals(this.mesh.geometry);
+    recalculateQuadNormals(this.mesh.geometry, affectedVertices);
     this.mesh.geometry.getAttribute('normal').needsUpdate = true;
-    invalidateBrushAcceleration(this.mesh.geometry);
-    this.mesh.geometry.computeBoundingSphere();
-    this.mesh.geometry.computeBoundingBox();
     this.updateWireframeOverlay();
   }
 
   finishStroke(): void {
     rebuildBrushAcceleration(this.mesh.geometry);
+    this.mesh.geometry.computeBoundingSphere();
+    this.mesh.geometry.computeBoundingBox();
+    delete this.mesh.geometry.userData.lastBrushCandidates;
   }
 
   setWireframe(enabled: boolean): void {

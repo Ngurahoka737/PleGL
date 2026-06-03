@@ -52,3 +52,5 @@ Surface normals are also averaged from the original quad faces. The triangle dia
 The wireframe overlay keeps a stable visual hierarchy after Divide: major lines repeat every four minor cells, medium lines every two minor cells, and newly inserted lines remain subtle.
 
 Subdivision levels behave like a lightweight multires stack in the browser fallback. Higher levels are preserved when stepping down and back up, while level 6 brush strokes use cached topology and a spatial brush index so only nearby vertices are evaluated.
+
+High subdivision sculpting is optimized for interactive strokes: pointer moves are sampled once per animation frame, repeated dabs are skipped when they are too close together, normals are recalculated only around the brush footprint, and expensive bounds/spatial-grid rebuilds are delayed until the stroke ends.
