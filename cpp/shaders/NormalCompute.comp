@@ -1,0 +1,39 @@
+#version 430
+
+layout(local_size_x = 128) in;
+
+layout(std430, binding = 0) readonly buffer PositionBuffer { vec4 positions[]; };
+layout(std430, binding = 1) buffer NormalBuffer { vec4 normals[]; };
+layout(std430, binding = 2) readonly buffer NeighborOffsetBuffer { uint neighborOffsets[]; };
+layout(std430, binding = 3) readonly buffer NeighborIndexBuffer { uint neighborIndices[]; };
+
+layout(std430, binding = 4) readonly buffer BrushParamBuffer {
+  vec4 centerRadius;
+  vec4 deltaStrength;
+  uint vertexCount;
+  uint brushKind;
+  uint invert;
+  uint _padding;
+};
+
+void main() {
+  uint vertexIndex = gl_GlobalInvocationID.x;
+  if (vertexIndex >= vertexCount) return;
+
+  vec3 position = positions[vertexIndex].xyz;
+  uint begin = neighborOffsets[vertexIndex];
+  uint end = neighborOffsets[vertexIndex + 1u];
+  if (begin == end) return;
+
+  vec3 average = vec3(0.0);
+  for (uint i = begin; i < end; ++i) {
+    average += positions[neighborIndices[i]].xyz;
+  }
+  average /= float(end - begin);
+
+  // Minimal stable fallback normal for early GPU sculpting.
+  // A future face-adjacency buffer can replace this with exact area-weighted normals.
+  vec3 normal = normalize(position - average);
+  if (all(equal(normal, vec3(0.0)))) normal = normals[vertexIndex].xyz;
+  normals[vertexIndex] = vec4(normalize(normal), 0.0);
+}

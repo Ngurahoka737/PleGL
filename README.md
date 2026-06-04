@@ -58,3 +58,23 @@ High subdivision sculpting is optimized for interactive strokes: pointer moves a
 Move Brush follows the grab-style sculpt workflow: vertices under the brush are cached at stroke start with falloff weights, then dragged along the camera plane by the mouse delta. Press `4` to activate it.
 
 Smooth Brush follows Blender's sculpt smoothing pattern: brush strength is split into up to four iterations, each iteration computes neighbor-average target positions first and then applies falloff-scaled translations.
+
+## OpenGL GPU Compute Foundation
+
+The current browser build still uses WebGL for rendering and CPU/WASM or TypeScript for deformation. A modular desktop OpenGL compute foundation is available under `cpp/include/gpu`, `cpp/src/gpu`, and `cpp/shaders` for the future native renderer path.
+
+It provides:
+
+- `GpuMeshBuffer`: uploads position, normal, index, and quad-neighbor adjacency data into SSBOs.
+- `ComputeBrush`: compiles and dispatches OpenGL compute shaders with error reporting and CPU-fallback signaling.
+- `BrushCompute.comp`: Draw, Smooth, Inflate, and Move brush deformation directly on GPU position buffers.
+- `NormalCompute.comp`: minimal neighbor-based GPU normal refresh after deformation.
+
+Enable the optional CMake target for native OpenGL integration:
+
+```bash
+cmake -S cpp -B build-cpp -DPLEGL_BUILD_OPENGL_COMPUTE=ON
+cmake --build build-cpp --target plegl-opengl-compute
+```
+
+Renderer integration should bind `GpuMeshBuffer::positionBuffer()` and `normalBuffer()` directly as vertex attributes, then call `ComputeBrush::dispatch(...)` before rendering. If OpenGL 4.3 compute entry points are unavailable, `ComputeBrush` reports unavailable so callers can keep the existing CPU brush path.
