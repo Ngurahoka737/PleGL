@@ -6,6 +6,7 @@ await mkdir('work/cpp', { recursive: true });
 const sources = [
   'cpp/src/Mesh.cpp',
   'cpp/src/PrimitiveGenerator.cpp',
+  'cpp/src/PixRemesh.cpp',
   'cpp/src/Brush.cpp',
   'cpp/src/HistoryManager.cpp',
   'cpp/src/SculptEngine.cpp',

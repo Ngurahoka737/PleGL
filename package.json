@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:wasm": "node scripts/build-wasm.mjs",
+    "instant:remesh": "node scripts/run-instant-meshes.mjs",
     "check:brush-performance": "tsx scripts/check-brush-performance.ts",
     "check:cpp-core": "node scripts/check-cpp-core.mjs",
     "check:multires-levels": "tsx scripts/check-multires-levels.ts",

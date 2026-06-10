@@ -5,16 +5,20 @@
 #include <vector>
 
 using Quad = std::array<std::uint32_t, 4>;
+using Triangle = std::array<std::uint32_t, 3>;
 
 class Mesh {
  public:
   std::vector<Vec3> vertices;
   std::vector<Vec3> normals;
   std::vector<Quad> quads;
+  std::vector<Triangle> triangles;
   std::vector<std::uint32_t> indices;
   std::vector<std::vector<std::uint32_t>> neighbors;
 
   void rebuildDerivedData();
   std::vector<float> packedPositions() const;
   std::vector<float> packedNormals() const;
+  std::vector<std::uint32_t> packedDisplayEdges() const;
+  std::vector<std::uint32_t> packedQuads() const;
 };

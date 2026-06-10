@@ -1,6 +1,7 @@
 #pragma once
 #include "Brush.hpp"
 #include "HistoryManager.hpp"
+#include "PixRemesh.hpp"
 #include "PrimitiveGenerator.hpp"
 #include <vector>
 
@@ -21,6 +22,20 @@ class SculptEngine {
   bool applyClay(float x, float y, float z, float nx, float ny, float nz, float radius, float strength, bool invert);
   void beginMove(float x, float y, float z, float radius);
   bool applyMove(float dx, float dy, float dz, bool invert);
+  bool pixRemesh(const std::vector<float>& positions,
+                 const std::vector<std::uint32_t>& indices,
+                 int resolution,
+                 float adaptiveDensity,
+                 bool preserveSharpFeatures,
+                 int smoothIterations,
+                 bool projectDetails);
+  std::uint32_t previewPixRemeshTriangles(const std::vector<float>& positions,
+                                          const std::vector<std::uint32_t>& indices,
+                                          int resolution,
+                                          float adaptiveDensity,
+                                          bool preserveSharpFeatures,
+                                          int smoothIterations,
+                                          bool projectDetails);
   void beginStroke();
   bool undo();
   bool redo();

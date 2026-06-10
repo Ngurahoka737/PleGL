@@ -15,10 +15,14 @@ EMSCRIPTEN_BINDINGS(sculpt_engine) {
     .function("applyClay", &SculptEngine::applyClay)
     .function("beginMove", &SculptEngine::beginMove)
     .function("applyMove", &SculptEngine::applyMove)
+    .function("pixRemesh", &SculptEngine::pixRemesh)
+    .function("previewPixRemeshTriangles", &SculptEngine::previewPixRemeshTriangles)
     .function("beginStroke", &SculptEngine::beginStroke)
     .function("undo", &SculptEngine::undo)
     .function("redo", &SculptEngine::redo)
     .function("positions", optional_override([](const SculptEngine& e) { return e.mesh().packedPositions(); }))
     .function("normals", optional_override([](const SculptEngine& e) { return e.mesh().packedNormals(); }))
-    .function("indices", optional_override([](const SculptEngine& e) { return e.mesh().indices; }));
+    .function("indices", optional_override([](const SculptEngine& e) { return e.mesh().indices; }))
+    .function("displayEdges", optional_override([](const SculptEngine& e) { return e.mesh().packedDisplayEdges(); }))
+    .function("quads", optional_override([](const SculptEngine& e) { return e.mesh().packedQuads(); }));
 }

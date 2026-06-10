@@ -5,6 +5,7 @@ await mkdir('public/wasm', { recursive: true });
 const sources = [
   'cpp/src/Mesh.cpp',
   'cpp/src/PrimitiveGenerator.cpp',
+  'cpp/src/PixRemesh.cpp',
   'cpp/src/SculptEngine.cpp',
   'cpp/src/Brush.cpp',
   'cpp/src/HistoryManager.cpp',
